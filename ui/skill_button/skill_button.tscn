@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/skill_button/skill_button.gd" id="1_skill"]
+
+[node name="SkillButton" type="Control"]
+anchors_preset = -1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -110.0
+offset_top = -110.0
+offset_right = -14.0
+offset_bottom = -14.0
+script = ExtResource("1_skill")

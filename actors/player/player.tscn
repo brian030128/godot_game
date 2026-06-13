@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://actors/player/player.gd" id="1_player"]
 [ext_resource type="Texture2D" uid="uid://d2baclvx0ih66" path="res://assets/sprites/character.png" id="2_char"]
 [ext_resource type="Script" path="res://actors/player/range_indicator.gd" id="3_range"]
+[ext_resource type="Script" path="res://actors/player/skill_indicator.gd" id="4_skill_ind"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
 radius = 11.0
@@ -25,4 +26,7 @@ shape = SubResource("CircleShape2D_1")
 
 [node name="RangeIndicator" type="Node2D" parent="."]
 script = ExtResource("3_range")
+
+[node name="SkillIndicator" type="Node2D" parent="."]
+script = ExtResource("4_skill_ind")
 

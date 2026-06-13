@@ -1,11 +1,16 @@
 extends CharacterBody2D
-## Top-down player. Moves in 8 directions via move_and_slide() and fires a
-## ranged weapon at the nearest enemy in range.
+## Top-down player. Moves in 8 directions via move_and_slide(), fires a ranged
+## auto-attack at the nearest enemy in range, and casts assigned skills.
 ##
 ## Movement comes from an injected virtual joystick (loose coupling, per
 ## best_practices/scene_organization.rst) OR keyboard (WASD/arrows) as a
 ## desktop-testing fallback. The joystick and attack button references are
 ## assigned by the parent scene rather than looked up by hard-coded path.
+##
+## Skills (including dash) are data-driven Skill resources assigned via
+## set_skills(). The player owns all runtime skill state — per-slot cooldowns and
+## the generic "lunge" body-movement primitive that dash-like skills drive — so
+## the shared Skill .tres assets stay stateless.
 
 ## Movement speed in px/sec.
 @export var speed: float = 240.0
@@ -35,11 +40,23 @@ var attack_button: Node = null:
 		if attack_button != null and not attack_button.pressed.is_connected(_on_attack):
 			attack_button.pressed.connect(_on_attack)
 
+## Skills assigned to the player's slots (slot 0 is conventionally dash). Set via
+## set_skills(); may contain nulls for empty slots.
+var skills: Array[Skill] = []
+
 var _health: int = 0
 var _alive: bool = true
 var _walk_frame: int = 0
 var _walk_timer: float = 0.0
 var _facing_row: int = 0
+## Last non-zero movement direction, used to aim an un-aimed (tapped) skill.
+var _facing: Vector2 = Vector2.DOWN
+## Remaining cooldown (sec) per skill slot; parallel to `skills`.
+var _cooldowns: Array[float] = []
+## Active lunge (dash-like burst movement) state; ZERO/0 when not lunging.
+var _lunge_dir: Vector2 = Vector2.ZERO
+var _lunge_speed: float = 0.0
+var _lunge_time_left: float = 0.0
 
 const ROW_DOWN := 0
 const ROW_LEFT := 1
@@ -50,6 +67,7 @@ const WALK_FRAMES := [0, 1, 2, 1]
 
 @onready var _sprite: Sprite2D = $Sprite2D
 @onready var _range_indicator: Node2D = $RangeIndicator
+@onready var _skill_indicator: Node2D = $SkillIndicator
 
 
 func _ready() -> void:
@@ -59,6 +77,20 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Tick down every skill cooldown.
+	for i in _cooldowns.size():
+		if _cooldowns[i] > 0.0:
+			_cooldowns[i] = maxf(_cooldowns[i] - delta, 0.0)
+
+	# While lunging (dash-like skills), ignore steering and slide along the lunge
+	# vector. Only the body drives its own movement.
+	if _lunge_time_left > 0.0:
+		_lunge_time_left -= delta
+		velocity = _lunge_dir * _lunge_speed
+		move_and_slide()
+		_update_animation(_lunge_dir, delta)
+		return
+
 	var direction: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 
 	# Joystick overrides keyboard when it is actively pushed.
@@ -68,9 +100,81 @@ func _physics_process(delta: float) -> void:
 	if direction.length() > 1.0:
 		direction = direction.normalized()
 
+	if direction != Vector2.ZERO:
+		_facing = direction.normalized()
+
 	velocity = direction * speed
 	move_and_slide()
 	_update_animation(direction, delta)
+
+
+## Assign the player's skills and reset all cooldowns to ready. Accepts an
+## untyped array and re-types it via assign() (callers often hold Array[Resource]
+## from preloaded .tres, which `as Array[Skill]` won't convert).
+func set_skills(list: Array) -> void:
+	skills.assign(list)
+	_cooldowns.clear()
+	_cooldowns.resize(skills.size())  # resize zero-fills (all skills start ready)
+
+
+## Begin a burst of straight-line movement. Skills (e.g. DashSkill) call this
+## rather than touching the body directly. ZERO dir means "lunge toward facing".
+func begin_lunge(dir: Vector2, spd: float, dur: float) -> void:
+	_lunge_dir = _facing if dir == Vector2.ZERO else dir.normalized()
+	_lunge_speed = spd
+	_lunge_time_left = dur
+
+
+## Cast the skill in `slot`, aimed by `direction` (ZERO = use facing) and/or
+## `target_position`. Returns false if the slot is empty/dead/on cooldown.
+func cast_skill(slot: int, direction: Vector2, target_position: Vector2) -> bool:
+	if not _alive or slot < 0 or slot >= skills.size():
+		return false
+	var skill := skills[slot]
+	if skill == null or _cooldowns[slot] > 0.0:
+		return false
+	var ctx := SkillContext.new()
+	ctx.caster = self
+	ctx.world = get_parent()
+	ctx.facing = _facing
+	ctx.direction = _facing if direction == Vector2.ZERO else direction.normalized()
+	ctx.target_position = target_position
+	skill.cast(ctx)
+	_cooldowns[slot] = skill.cooldown
+	return true
+
+
+## Fraction of cooldown remaining for a slot (1 = just cast, 0 = ready). Drives
+## the skill button's radial sweep.
+func get_cooldown_ratio(slot: int) -> float:
+	if slot < 0 or slot >= skills.size() or skills[slot] == null:
+		return 0.0
+	var cd := skills[slot].cooldown
+	return 0.0 if cd <= 0.0 else clampf(_cooldowns[slot] / cd, 0.0, 1.0)
+
+
+## Show the targeting overlay for the skill in `slot` while the player aims it.
+## `direction` is the current aim (ZERO = use facing). DIRECTION skills draw an
+## arrow; TAP skills draw their affected radius. No-op for empty slots.
+func update_skill_preview(slot: int, direction: Vector2) -> void:
+	if slot < 0 or slot >= skills.size():
+		return
+	var skill := skills[slot]
+	if skill == null:
+		return
+	var extent := skill.preview_extent()
+	if extent <= 0.0:
+		return
+	if skill.cast_method == Skill.CastMethod.DIRECTION:
+		var aim := _facing if direction == Vector2.ZERO else direction.normalized()
+		_skill_indicator.show_direction(aim, extent, skill.color)
+	else:
+		_skill_indicator.show_radius(extent, skill.color)
+
+
+## Hide the targeting overlay (on release/cancel).
+func clear_skill_preview() -> void:
+	_skill_indicator.hide_preview()
 
 
 func _unhandled_input(event: InputEvent) -> void:

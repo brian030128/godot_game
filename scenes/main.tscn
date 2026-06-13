@@ -1,28 +1,59 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3 uid="uid://bjpnlfref2uov"]
 
-[ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://42yurjxxrwxj" path="res://scenes/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/room.tscn" id="2_room"]
 [ext_resource type="PackedScene" path="res://actors/player/player.tscn" id="3_player"]
 [ext_resource type="PackedScene" path="res://ui/joystick/virtual_joystick.tscn" id="4_joystick"]
 [ext_resource type="PackedScene" path="res://ui/attack_button/attack_button.tscn" id="5_attack"]
+[ext_resource type="PackedScene" path="res://ui/skill_button/skill_button.tscn" id="6_skill"]
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=521072100]
 script = ExtResource("1_main")
 
-[node name="Room" parent="." instance=ExtResource("2_room")]
+[node name="Room" parent="." unique_id=1776722802 instance=ExtResource("2_room")]
 
-[node name="Player" parent="." instance=ExtResource("3_player")]
+[node name="Player" parent="." unique_id=1702834314 instance=ExtResource("3_player")]
 position = Vector2(800, 500)
 
-[node name="Camera2D" type="Camera2D" parent="Player"]
+[node name="Camera2D" type="Camera2D" parent="Player" unique_id=572321660]
 
-[node name="UI" type="CanvasLayer" parent="."]
+[node name="UI" type="CanvasLayer" parent="." unique_id=1104852981]
 
-[node name="VirtualJoystick" parent="UI" instance=ExtResource("4_joystick")]
+[node name="VirtualJoystick" parent="UI" unique_id=74539480 instance=ExtResource("4_joystick")]
+layout_mode = 3
 
-[node name="AttackButton" parent="UI" instance=ExtResource("5_attack")]
+[node name="AttackButton" parent="UI" unique_id=1640165395 instance=ExtResource("5_attack")]
+layout_mode = 3
 
-[node name="HealthLabel" type="Label" parent="UI"]
+[node name="SkillButton1" parent="UI" instance=ExtResource("6_skill")]
+layout_mode = 3
+offset_left = -372.0
+offset_top = -150.0
+offset_right = -276.0
+offset_bottom = -54.0
+
+[node name="SkillButton2" parent="UI" instance=ExtResource("6_skill")]
+layout_mode = 3
+offset_left = -352.0
+offset_top = -270.0
+offset_right = -256.0
+offset_bottom = -174.0
+
+[node name="SkillButton3" parent="UI" instance=ExtResource("6_skill")]
+layout_mode = 3
+offset_left = -258.0
+offset_top = -362.0
+offset_right = -162.0
+offset_bottom = -266.0
+
+[node name="SkillButton4" parent="UI" instance=ExtResource("6_skill")]
+layout_mode = 3
+offset_left = -140.0
+offset_top = -396.0
+offset_right = -44.0
+offset_bottom = -300.0
+
+[node name="HealthLabel" type="Label" parent="UI" unique_id=965300780]
 offset_left = 24.0
 offset_top = 20.0
 offset_right = 240.0

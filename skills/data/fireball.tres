@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ProjectileSkill" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://skills/projectile_skill.gd" id="1_proj"]
+[ext_resource type="PackedScene" path="res://actors/bullet/bullet.tscn" id="2_bullet"]
+
+[resource]
+script = ExtResource("1_proj")
+skill_name = "Fireball"
+cooldown = 1.5
+cast_method = 1
+color = Color(0.95, 0.55, 0.3, 1)
+projectile_scene = ExtResource("2_bullet")
+damage = 2
+speed = 600.0
