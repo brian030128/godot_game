@@ -12,13 +12,15 @@ config_version=5
 
 config/name="Stitched Dreams"
 config/description="A mobile 2D top-down adventure."
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/boot.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
 
 [autoload]
 
 Game="*res://autoloads/game.gd"
+SaveManager="*res://autoloads/save_manager.gd"
+Auth="*res://autoloads/auth.gd"
 
 [display]
 
