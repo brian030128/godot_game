@@ -1,4 +1,4 @@
 [submodule "docs"]
-	path = docs
+	path = docs/godot
 	url = git@github.com:godotengine/godot-docs.git
 	branch = stable
