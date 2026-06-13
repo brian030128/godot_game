@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/room.tscn" id="2_room"]
 [ext_resource type="PackedScene" path="res://actors/player/player.tscn" id="3_player"]
 [ext_resource type="PackedScene" path="res://ui/joystick/virtual_joystick.tscn" id="4_joystick"]
+[ext_resource type="PackedScene" path="res://ui/attack_button/attack_button.tscn" id="5_attack"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -18,3 +19,13 @@ position = Vector2(800, 500)
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="VirtualJoystick" parent="UI" instance=ExtResource("4_joystick")]
+
+[node name="AttackButton" parent="UI" instance=ExtResource("5_attack")]
+
+[node name="HealthLabel" type="Label" parent="UI"]
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 240.0
+offset_bottom = 52.0
+theme_override_font_sizes/font_size = 28
+text = "HP 5 / 5"

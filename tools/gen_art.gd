@@ -5,6 +5,8 @@ extends SceneTree
 ## Outputs:
 ##   res://assets/tiles/tiles_atlas.png   (4 tiles in a row: floor, floor_flower, wall, wall_top)
 ##   res://assets/sprites/character.png   (4 facing frames: down, left, right, up)
+##   res://assets/sprites/mob.png         (single 32x32 creature frame)
+##   res://assets/sprites/bullet.png      (single 8x8 projectile)
 ##
 ## Deliberately simple/clean placeholder art — flat colors with light shading and
 ## dithering so tiles read as intentional pixel art, not programmer rectangles.
@@ -33,11 +35,23 @@ const SHIRT_HI := Color8(232, 128, 150)
 const PANTS := Color8(70, 86, 130)
 const OUTLINE := Color8(40, 32, 48)
 
+# Mob palette — a sickly purple blob to read as "menacing dream creature".
+const MOB_A := Color8(96, 70, 120)
+const MOB_B := Color8(78, 56, 100)
+const MOB_HI := Color8(126, 96, 150)
+const MOB_EYE := Color8(228, 220, 120)
+
+# Bullet palette — a bright warm projectile that pops against the cozy room.
+const BULLET_CORE := Color8(255, 236, 160)
+const BULLET_EDGE := Color8(232, 150, 80)
+
 
 func _initialize() -> void:
 	seed(20260613)
 	var tiles := _make_tiles()
 	var chars := _make_character()
+	var mob := _make_mob()
+	var bullet := _make_bullet()
 
 	var d := DirAccess.open("res://")
 	d.make_dir_recursive("assets/tiles")
@@ -45,8 +59,12 @@ func _initialize() -> void:
 
 	var e1 := tiles.save_png("res://assets/tiles/tiles_atlas.png")
 	var e2 := chars.save_png("res://assets/sprites/character.png")
+	var e3 := mob.save_png("res://assets/sprites/mob.png")
+	var e4 := bullet.save_png("res://assets/sprites/bullet.png")
 	print("tiles_atlas.png -> ", error_string(e1))
 	print("character.png -> ", error_string(e2))
+	print("mob.png -> ", error_string(e3))
+	print("bullet.png -> ", error_string(e4))
 	quit()
 
 
@@ -195,3 +213,60 @@ func _outline(img: Image, ox: int) -> void:
 					break
 			if near:
 				_px(img, ox, x, y, OUTLINE)
+
+
+# --- Mob ------------------------------------------------------------------
+# Single 32x32 frame: a rounded purple blob with two glowing eyes.
+
+func _make_mob() -> Image:
+	var img := Image.create(TILE, TILE, false, Image.FORMAT_RGBA8)
+	for y in TILE:
+		for x in TILE:
+			img.set_pixel(x, y, Color(0, 0, 0, 0))
+
+	var cx := 16.0
+	var cy := 18.0  # sit the body slightly low so it reads as grounded
+	var rx := 11.0
+	var ry := 10.0
+	for y in TILE:
+		for x in TILE:
+			var nx := (x + 0.5 - cx) / rx
+			var ny := (y + 0.5 - cy) / ry
+			if nx * nx + ny * ny <= 1.0:
+				# Two-tone dither plus sparse highlights for a blobby texture.
+				var c := MOB_A if ((x >> 2) + (y >> 2)) % 2 == 0 else MOB_B
+				if ny < -0.3 and randi() % 3 == 0:
+					c = MOB_HI  # lit top
+				elif randi() % 19 == 0:
+					c = MOB_HI
+				img.set_pixel(x, y, c)
+
+	# Glowing eyes.
+	_rect(img, 0, 11, 15, 3, 3, MOB_EYE)
+	_rect(img, 0, 18, 15, 3, 3, MOB_EYE)
+	_px(img, 0, 12, 16, OUTLINE)
+	_px(img, 0, 19, 16, OUTLINE)
+
+	_outline(img, 0)
+	return img
+
+
+# --- Bullet ---------------------------------------------------------------
+# Small 8x8 glowing orb.
+
+func _make_bullet() -> Image:
+	var size := 8
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var c := (size - 1) / 2.0
+	for y in size:
+		for x in size:
+			var dx := x - c
+			var dy := y - c
+			var dist := sqrt(dx * dx + dy * dy)
+			if dist <= c - 0.5:
+				img.set_pixel(x, y, BULLET_CORE)
+			elif dist <= c + 0.5:
+				img.set_pixel(x, y, BULLET_EDGE)
+			else:
+				img.set_pixel(x, y, Color(0, 0, 0, 0))
+	return img

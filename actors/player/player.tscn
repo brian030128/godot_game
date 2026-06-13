@@ -1,12 +1,15 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://actors/player/player.gd" id="1_player"]
 [ext_resource type="Texture2D" uid="uid://d2baclvx0ih66" path="res://assets/sprites/character.png" id="2_char"]
+[ext_resource type="Script" path="res://actors/player/range_indicator.gd" id="3_range"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
 radius = 11.0
 
 [node name="Player" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
 script = ExtResource("1_player")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
@@ -17,3 +20,7 @@ texture_filter = 1
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, 6)
 shape = SubResource("CircleShape2D_1")
+
+[node name="RangeIndicator" type="Node2D" parent="."]
+script = ExtResource("3_range")
+
