@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/joystick/virtual_joystick.gd" id="1_joystick"]
+
+[node name="VirtualJoystick" type="Control"]
+anchors_preset = -1
+offset_left = 60.0
+offset_top = -300.0
+offset_right = 300.0
+offset_bottom = -60.0
+anchor_top = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_joystick")

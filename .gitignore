@@ -1,0 +1,14 @@
+# Godot 4 editor cache and imported files
+.godot/
+
+# Exported builds
+build/
+export/
+*.exe
+*.pck
+*.apk
+*.aab
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
