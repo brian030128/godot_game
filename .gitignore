@@ -1,14 +1,30 @@
-# Godot 4 editor cache and imported files
+# Godot 4+ editor cache, imported assets, and crash logs.
+# Based on the official template: https://github.com/github/gitignore/blob/main/Godot.gitignore
 .godot/
+.import/
+.nomedia
+export.cfg
+export_credentials.cfg
+mono_crash.*.json
+*.translation
+*.tmp
 
-# Exported builds
+# Godot 4.2+ hot-reload artifact.
+~*.dll
+
+# Mono / C# build output (harmless to keep even on a GDScript-only project).
+.mono/
+data_*/
+
+# Exported builds.
 build/
 export/
 *.exe
 *.pck
+*.zip
 *.apk
 *.aab
 
-# OS / editor cruft
+# OS / editor cruft.
 .DS_Store
 Thumbs.db
