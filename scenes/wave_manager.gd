@@ -21,6 +21,8 @@ var mob_container: Node = null
 
 var _waves: Array = []
 var _player: Node2D = null
+## The current room, injected into each mob as its pathfinding source (find_path).
+var _nav: RoomBase = null
 var _wave_index: int = 0
 ## Mobs still alive in the current wave. Tracked explicitly (not via group count)
 ## because mobs join the "enemies" group in _ready, a frame after spawning.
@@ -29,10 +31,12 @@ var _active: bool = false
 
 
 ## Begin a room. `wave_configs` is an Array of waves; each wave is an Array of
-## Vector2 spawn positions. `player` is injected into each mob as its chase target.
-func start_room(wave_configs: Array, player: Node2D) -> void:
+## Vector2 spawn positions. `player` is injected into each mob as its chase
+## target; `nav` (the room) as its pathfinding source.
+func start_room(wave_configs: Array, player: Node2D, nav: RoomBase) -> void:
 	_waves = wave_configs
 	_player = player
+	_nav = nav
 	_wave_index = 0
 	_alive = 0
 	_active = true
@@ -63,6 +67,7 @@ func _spawn_wave(index: int) -> void:
 	for pos in spawns:
 		var mob := mob_scene.instantiate()
 		mob.target = _player
+		mob.nav = _nav
 		mob.died.connect(_on_mob_died)
 		mob_container.add_child(mob)
 		# Set position after adding so global_position resolves against the tree.

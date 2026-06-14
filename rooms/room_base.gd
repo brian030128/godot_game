@@ -42,6 +42,12 @@ const CRATES := preload("res://assets/props/crates.png")
 ## Which wall the player enters from. Subclasses set this to match their grid.
 @export var entry_side: String = "bottom"
 
+## A* grid over this room's tiles, rebuilt every build(). cell_size matches TILE
+## and offset is half a tile, so a grid point's position equals _cell_center(x, y).
+## Solid cells are the ones _blocks_movement() returns true for (walls + props).
+## Mobs query it via find_path() to route around obstacles.
+var nav_grid: AStarGrid2D = null
+
 
 func _ready() -> void:
 	# Render standalone (e.g. opening the room scene directly) — build() is
@@ -116,6 +122,8 @@ func build() -> Dictionary:
 		else Vector2(cols * TILE / 2, rows * TILE / 2)
 	# Stand the player ~1.5 tiles inside the doorway, clear of the entry gate.
 	var entry_pos: Vector2 = entry_anchor + _inward_of(detected_entry) * (TILE * 1.5)
+
+	_build_nav(grid, cols, rows)
 
 	return {
 		"entry_pos": entry_pos,
@@ -201,6 +209,76 @@ func _run_center(run: Array[Vector2i]) -> Vector2:
 
 func _cell_center(x: int, y: int) -> Vector2:
 	return Vector2(x * TILE + TILE / 2, y * TILE + TILE / 2)
+
+
+## Cells that mobs (and the player) cannot walk through: walls and every prop.
+## Door/entry/spawn/floor/accent cells are all passable.
+func _blocks_movement(ch: String) -> bool:
+	return ch == "#" or ch == "B" or ch == "P" or ch == "T" or ch == "C"
+
+
+## (Re)build nav_grid from the parsed char grid. Must run after region/cell_size
+## are set and BEFORE marking solidity, because AStarGrid2D.update() resets every
+## point to non-solid.
+func _build_nav(grid: Array[String], cols: int, rows: int) -> void:
+	nav_grid = AStarGrid2D.new()
+	nav_grid.region = Rect2i(0, 0, cols, rows)
+	nav_grid.cell_size = Vector2(TILE, TILE)
+	nav_grid.offset = Vector2(TILE / 2.0, TILE / 2.0)  # point == _cell_center
+	# AT_LEAST_ONE_WALKABLE allows diagonals but never cuts a wall/prop corner;
+	# the default ALWAYS would let mobs slip diagonally through a corner.
+	nav_grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_AT_LEAST_ONE_WALKABLE
+	nav_grid.default_compute_heuristic = AStarGrid2D.HEURISTIC_OCTILE
+	nav_grid.update()  # prepares points AND clears solidity -> set solids after
+	for y in rows:
+		var line := grid[y]
+		for x in cols:
+			var ch := line[x] if x < line.length() else "#"
+			if _blocks_movement(ch):
+				nav_grid.set_point_solid(Vector2i(x, y), true)
+
+
+## Return world-space waypoints routing from `from_world` to `to_world` around
+## solid cells, or an empty array if there's no grid. Callers treat an empty
+## result as "steer directly", so out-of-room / unreachable cases degrade
+## gracefully instead of freezing. Both endpoints are clamped into the grid and
+## snapped off solid cells so A* always has a valid start and goal.
+func find_path(from_world: Vector2, to_world: Vector2) -> PackedVector2Array:
+	if nav_grid == null:
+		return PackedVector2Array()
+	var from_id := _nearest_free(_clamp_id(_world_to_id(from_world)))
+	var to_id := _nearest_free(_clamp_id(_world_to_id(to_world)))
+	if from_id == to_id:
+		return PackedVector2Array([_cell_center(to_id.x, to_id.y)])
+	# allow_partial_path=true: a walled-off goal still yields a best-effort route.
+	return nav_grid.get_point_path(from_id, to_id, true)
+
+
+func _world_to_id(p: Vector2) -> Vector2i:
+	return Vector2i(floori(p.x / TILE), floori(p.y / TILE))
+
+
+func _clamp_id(id: Vector2i) -> Vector2i:
+	var r := nav_grid.region
+	return Vector2i(
+		clampi(id.x, r.position.x, r.position.x + r.size.x - 1),
+		clampi(id.y, r.position.y, r.position.y + r.size.y - 1))
+
+
+## Return `id` if walkable, else the closest non-solid cell found in expanding
+## ring shells. Walls/props are thin, so a free cell is always within a few rings.
+func _nearest_free(id: Vector2i) -> Vector2i:
+	if not nav_grid.is_point_solid(id):
+		return id
+	for radius in range(1, 4):
+		for dy in range(-radius, radius + 1):
+			for dx in range(-radius, radius + 1):
+				if absi(dx) != radius and absi(dy) != radius:
+					continue  # ring shell only, skip the filled interior
+				var n := Vector2i(id.x + dx, id.y + dy)
+				if nav_grid.is_in_boundsv(n) and not nav_grid.is_point_solid(n):
+					return n
+	return id  # give up; allow_partial_path in find_path handles it
 
 
 func _add_prop(texture: Texture2D, cell: Vector2i, collision_rect: Rect2) -> void:

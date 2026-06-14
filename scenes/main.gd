@@ -150,7 +150,7 @@ func _start_room(index: int, required_entry: String) -> void:
 	# Let the previous frame's queue_frees flush (mobs join "enemies" a frame late).
 	await get_tree().process_frame
 
-	wave_manager.start_room(_build_waves(index, data.spawns), player)
+	wave_manager.start_room(_build_waves(index, data.spawns), player, _room)
 	_state = State.FIGHTING
 
 
