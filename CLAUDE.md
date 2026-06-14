@@ -2,12 +2,15 @@
 
 ## Godot engine
 
-The Godot editor/runtime (v4.6.3-stable, Windows arm64) lives one level up from this project, in `C:\Users\bricha\workspace\godot`:
+The Godot editor/runtime (v4.6.3-stable) lives one level up from this project.
+Paths below are relative to the project root; use the binary matching the
+machine's architecture (the other set won't be present):
 
-- `C:\Users\bricha\workspace\godot\Godot_v4.6.3-stable_windows_arm64.exe` — editor/GUI binary
-- `C:\Users\bricha\workspace\godot\Godot_v4.6.3-stable_windows_arm64_console.exe` — console binary (use for headless `--headless` parse checks and CLI output)
+- x86-64: `../Godot_v4.6.3-stable_win64.exe` (editor/GUI), `../Godot_v4.6.3-stable_win64_console.exe` (console)
+- arm64: `../Godot_v4.6.3-stable_windows_arm64.exe` (editor/GUI), `../Godot_v4.6.3-stable_windows_arm64_console.exe` (console)
 
-It is not on `PATH`, so invoke it by full path.
+Use the console binary for headless `--headless` parse checks and CLI output. It
+is not on `PATH`, so invoke it by relative path.
 
 ## Documentation
 
