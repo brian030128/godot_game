@@ -1,11 +1,16 @@
 extends CharacterBody2D
-## Top-down player. Moves in 8 directions via move_and_slide(), fires a ranged
-## auto-attack at the nearest enemy in range, and casts assigned skills.
+## Top-down player. Moves in 8 directions via move_and_slide(), automatically
+## fires a ranged attack at the nearest enemy in range on a fixed cadence, and
+## casts assigned skills.
 ##
 ## Movement comes from an injected virtual joystick (loose coupling, per
 ## best_practices/scene_organization.rst) OR keyboard (WASD/arrows) as a
-## desktop-testing fallback. The joystick and attack button references are
-## assigned by the parent scene rather than looked up by hard-coded path.
+## desktop-testing fallback. The joystick reference is assigned by the parent
+## scene rather than looked up by hard-coded path.
+##
+## The auto-attack needs no input: a timer fires a bullet at the nearest enemy
+## within attack_range every attack_interval seconds, and simply stays idle when
+## no enemy is in range.
 ##
 ## Skills (including dash) are data-driven Skill resources assigned via
 ## set_skills(). The player owns all runtime skill state — per-slot cooldowns and
@@ -18,6 +23,8 @@ extends CharacterBody2D
 @export var max_health: int = 5
 ## Targeting range (px): bullets only fire at enemies within this distance.
 @export var attack_range: float = 320.0
+## Seconds between auto-attack shots.
+@export var attack_interval: float = 0.5
 ## Bullet scene instanced on each attack.
 @export var bullet_scene: PackedScene
 ## Seconds between walk-frame advances while moving.
@@ -31,14 +38,6 @@ signal died
 ## Optional joystick whose `output` vector drives movement. Assigned by the
 ## owning scene (e.g. main.gd). When null, only keyboard input applies.
 var joystick: Node = null
-## Optional on-screen attack button. Assigned by the owning scene; its `pressed`
-## signal is wired up on assignment (the parent's _ready runs after ours, so we
-## can't connect from our own _ready).
-var attack_button: Node = null:
-	set(value):
-		attack_button = value
-		if attack_button != null and not attack_button.pressed.is_connected(_on_attack):
-			attack_button.pressed.connect(_on_attack)
 
 ## Skills assigned to the player's slots (slot 0 is conventionally dash). Set via
 ## set_skills(); may contain nulls for empty slots.
@@ -53,6 +52,8 @@ var _facing_row: int = 0
 var _facing: Vector2 = Vector2.DOWN
 ## Remaining cooldown (sec) per skill slot; parallel to `skills`.
 var _cooldowns: Array[float] = []
+## Time (sec) until the next auto-attack shot is allowed.
+var _attack_timer: float = 0.0
 ## Active lunge (dash-like burst movement) state; ZERO/0 when not lunging.
 var _lunge_dir: Vector2 = Vector2.ZERO
 var _lunge_speed: float = 0.0
@@ -81,6 +82,14 @@ func _physics_process(delta: float) -> void:
 	for i in _cooldowns.size():
 		if _cooldowns[i] > 0.0:
 			_cooldowns[i] = maxf(_cooldowns[i] - delta, 0.0)
+
+	# Auto-attack: count down and fire at the nearest in-range enemy. Ticked
+	# before the lunge early-return so the player keeps shooting while dashing.
+	# When no enemy is in range the shot is a no-op and the timer stays at 0, so
+	# the player fires the instant a target appears.
+	_attack_timer = maxf(_attack_timer - delta, 0.0)
+	if _attack_timer <= 0.0 and _fire_at_nearest():
+		_attack_timer = attack_interval
 
 	# While lunging (dash-like skills), ignore steering and slide along the lunge
 	# vector. Only the body drives its own movement.
@@ -177,12 +186,6 @@ func clear_skill_preview() -> void:
 	_skill_indicator.hide_preview()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	# Desktop fallback: the on-screen button is the primary trigger on mobile.
-	if event.is_action_pressed("attack"):
-		_on_attack()
-
-
 func _update_animation(direction: Vector2, delta: float) -> void:
 	if direction != Vector2.ZERO:
 		if absf(direction.x) > absf(direction.y):
@@ -211,19 +214,21 @@ func take_damage(amount: int) -> void:
 		died.emit()
 
 
-func _on_attack() -> void:
+## Fire one bullet at the nearest in-range enemy. Returns true if a shot was
+## fired, false if dead, unarmed, or no enemy is in range (auto-attack stays
+## idle rather than giving "nothing to shoot" feedback).
+func _fire_at_nearest() -> bool:
 	if not _alive or bullet_scene == null:
-		return
+		return false
 	var target := _nearest_enemy_in_range()
 	if target == null:
-		# Nothing to shoot: flash the attack range as feedback instead of firing.
-		_range_indicator.flash(attack_range)
-		return
+		return false
 	var bullet := bullet_scene.instantiate()
 	bullet.global_position = global_position
 	bullet.direction = global_position.direction_to(target.global_position)
 	# Add to the world (sibling tree) so the bullet lives independent of the player.
 	get_parent().add_child(bullet)
+	return true
 
 
 func _nearest_enemy_in_range() -> Node2D:

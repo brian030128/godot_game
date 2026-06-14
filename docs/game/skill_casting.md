@@ -8,8 +8,10 @@ the data-driven skill system in `skills/`, the player integration in
 
 A skill is **pure data plus a `cast()` method**, authored as a `.tres` resource
 and assigned to one of the player's skill slots. The player carries up to **3
-skills plus a dedicated dash** (4 button slots total). The red auto-attack button
-is *not* a skill — it stays a separate, always-available weapon.
+skills plus a dedicated dash** (4 button slots total). The ranged attack is *not*
+a skill and has no button: the player **auto-attacks**, firing at the nearest
+enemy in range every `attack_interval` seconds and staying idle when nothing is
+in range. Dash gets the large dedicated button in the bottom-right thumb spot.
 
 The design splits cleanly into three responsibilities:
 
@@ -129,9 +131,10 @@ and ring+knob `_draw`, plus:
 - Tints the ring/knob by the skill's `color` and overlays a dark radial cooldown
   pie (`draw_colored_polygon`, sweeping from 12 o'clock).
 
-The scene `scenes/main.tscn` instances four `SkillButton`s in a bottom-right arc;
-`scenes/main.gd` injects `player`/`slot` and connects `cast_requested` →
-`player.cast_skill`.
+The scene `scenes/main.tscn` instances four `SkillButton`s: a large dash button
+(slot 0) in the bottom-right thumb spot and three smaller buttons in an arc to its
+upper-left (Fireball, Nova, and one empty slot). `scenes/main.gd` injects
+`player`/`slot` and connects `cast_requested` → `player.cast_skill`.
 
 ## Extending: POSITION skills
 
