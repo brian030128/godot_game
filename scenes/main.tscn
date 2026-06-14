@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" path="res://ui/joystick/virtual_joystick.tscn" id="4_joystick"]
 [ext_resource type="Script" path="res://scenes/wave_manager.gd" id="5_wave"]
 [ext_resource type="PackedScene" path="res://ui/skill_button/skill_button.tscn" id="6_skill"]
+[ext_resource type="PackedScene" path="res://ui/cancel_area/cancel_area.tscn" id="7_cancel"]
 
 [node name="Main" type="Node2D" unique_id=521072100]
 script = ExtResource("1_main")
@@ -69,6 +70,8 @@ offset_left = -168.0
 offset_top = -353.0
 offset_right = -72.0
 offset_bottom = -257.0
+
+[node name="CancelArea" parent="UI" instance=ExtResource("7_cancel")]
 
 [node name="HealthLabel" type="Label" parent="UI" unique_id=965300780]
 offset_left = 24.0

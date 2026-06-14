@@ -55,6 +55,7 @@ enum State { BUILDING, FIGHTING, CLEARED, TRANSITIONING }
 @onready var skill_buttons: Array[Node] = [
 	$UI/SkillButton1, $UI/SkillButton2, $UI/SkillButton3, $UI/SkillButton4,
 ]
+@onready var cancel_area: CancelArea = $UI/CancelArea
 @onready var health_label: Label = $UI/HealthLabel
 @onready var gold_label: Label = $UI/GoldLabel
 
@@ -80,6 +81,7 @@ func _ready() -> void:
 		var button: SkillButton = skill_buttons[i]
 		button.player = player
 		button.slot = i
+		button.cancel_area = cancel_area
 		button.cast_requested.connect(player.cast_skill)
 	player.health_changed.connect(_on_player_health_changed)
 	player.died.connect(_on_player_died)

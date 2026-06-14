@@ -43,7 +43,8 @@ Every skill declares one `CastMethod` (`skills/skill.gd`), which decides how the
 
 ```
 SkillButton._release()
-  └─ reads player.skills[slot].cast_method, resolves direction / target_position
+  ├─ released over the CancelArea? → abort: emit nothing, skill stays ready
+  └─ otherwise reads player.skills[slot].cast_method, resolves direction / target_position
      └─ emits cast_requested(slot, direction, target_position)
         └─ Player.cast_skill(slot, direction, target_position)   [connected in main.gd]
            ├─ guards: alive? slot valid? skill non-null? off cooldown?
@@ -55,6 +56,32 @@ SkillButton._release()
 `Player._physics_process` ticks every slot's cooldown down each frame, and
 `SkillButton._process` polls `player.get_cooldown_ratio(slot)` to draw the
 MOBA-style radial cooldown sweep.
+
+## Cancelling a cast
+
+Pressing a skill button starts *aiming*, not casting — the cast only resolves on
+release. While a button is held, a **cancel drop-target** (`CancelArea`,
+`ui/cancel_area/`) appears as a red circle at the **top-right** of the screen.
+Dragging the finger into that circle and releasing there **aborts the cast**: no
+`cast_requested` is emitted, so nothing fires and the skill stays off cooldown.
+
+This lets the player peek a skill's targeting overlay — a TAP skill's affected
+radius or a DIRECTION skill's aim arrow — and back out if they change their mind
+(e.g. press Nova to check its range, then cancel instead of committing).
+
+- `CancelArea` is purely visual plus a hit-test target (`mouse_filter = IGNORE`);
+  it never handles input itself. It stays hidden until a button is pressed, is
+  shown while held, and highlights while the finger is over it.
+- `SkillButton` owns the interaction. It tracks drags **even for TAP skills**
+  (which otherwise have no knob to drag) so the finger can reach the circle,
+  converts the finger position into the shared `CanvasLayer` space, and queries
+  `CancelArea.contains_point()`. While the finger is over the circle the targeting
+  overlay is hidden as a "this will be cancelled" cue.
+- On release, a cancel short-circuits `_release()` *before* the `cast_method`
+  branch, so the abort path is identical for every method (TAP / DIRECTION /
+  POSITION).
+- `scenes/main.gd` injects the single shared `CancelArea` into every `SkillButton`
+  (`button.cancel_area = ...`), alongside `player` and `slot`.
 
 ### `SkillContext` (`skills/skill_context.gd`)
 
@@ -127,14 +154,18 @@ and ring+knob `_draw`, plus:
   skill is defined in exactly one place. Empty slots draw an inert placeholder
   and ignore input.
 - Branches on `cast_method` at release to produce the right `(direction,
-  target_position)`.
+  target_position)` — unless the release lands on the cancel target (see
+  [Cancelling a cast](#cancelling-a-cast)).
+- Injected `cancel_area`; while held it shows/highlights that target and aborts
+  the cast on release over it.
 - Tints the ring/knob by the skill's `color` and overlays a dark radial cooldown
   pie (`draw_colored_polygon`, sweeping from 12 o'clock).
 
 The scene `scenes/main.tscn` instances four `SkillButton`s: a large dash button
 (slot 0) in the bottom-right thumb spot and three smaller buttons in an arc to its
-upper-left (Fireball, Nova, and one empty slot). `scenes/main.gd` injects
-`player`/`slot` and connects `cast_requested` → `player.cast_skill`.
+upper-left (Fireball, Nova, and one empty slot), plus one shared `CancelArea` at
+the top-right. `scenes/main.gd` injects `player`/`slot`/`cancel_area` and connects
+`cast_requested` → `player.cast_skill`.
 
 ## Extending: POSITION skills
 

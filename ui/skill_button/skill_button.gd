@@ -16,7 +16,9 @@ class_name SkillButton
 ##               a skill yet, but the emit path is in place.]
 ##
 ## While held, the button drives the player's world-space targeting overlay
-## (SkillIndicator) and clears it on release.
+## (SkillIndicator) and clears it on release. Dragging the finger into the
+## CancelArea (top-right of the screen) and releasing there aborts the cast
+## instead of firing it — so a skill's range/aim can be peeked and backed out of.
 ##
 ## Drawn via _draw() in the same ring+knob style as the movement joystick and
 ## attack button. Touch emulation from mouse (project setting) lets this work
@@ -41,11 +43,14 @@ signal cast_requested(slot: int, direction: Vector2, target_position: Vector2)
 var player: Node = null
 ## Which of the player's skill slots this button controls. Injected by the scene.
 var slot: int = -1
+## Shared cancel drop-target (top-right). Injected by the scene; may be null.
+var cancel_area: CancelArea = null
 
 var _touch_index: int = -1          # which finger owns the control (-1 = none)
 var _center: Vector2 = Vector2.ZERO # base center in local coords
 var _knob_pos: Vector2 = Vector2.ZERO
 var _cooldown_ratio: float = 0.0    # cached for redraw-on-change
+var _canceling: bool = false        # finger currently over the cancel area
 
 
 func _ready() -> void:
@@ -83,22 +88,45 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed and _touch_index == -1:
 			_touch_index = event.index
+			if cancel_area != null:
+				cancel_area.show_area()
 			if aims:
 				_move_knob(event.position)
+			_update_cancel(event.position)
 			_update_preview()
 			accept_event()
 		elif not event.pressed and event.index == _touch_index:
 			_release()
 			accept_event()
-	elif event is InputEventScreenDrag and event.index == _touch_index and aims:
-		_move_knob(event.position)
+	# Track drags even for TAP skills (no knob) so the finger can reach the
+	# cancel area to abort the cast.
+	elif event is InputEventScreenDrag and event.index == _touch_index:
+		if aims:
+			_move_knob(event.position)
+		_update_cancel(event.position)
 		_update_preview()
 		accept_event()
 
 
+## Update the cancel state from the current finger position (control-local) and
+## reflect it in the cancel area's hover highlight.
+func _update_cancel(local_pos: Vector2) -> void:
+	if cancel_area == null:
+		return
+	# Both controls share the CanvasLayer, so offsetting by global_position puts
+	# the finger in the same space the cancel area hit-tests in.
+	_canceling = cancel_area.contains_point(global_position + local_pos)
+	cancel_area.set_hovered(_canceling)
+
+
 ## Drive the player's world-space targeting overlay from the current knob offset.
+## While the finger is over the cancel area the overlay is hidden, signalling the
+## cast will be aborted.
 func _update_preview() -> void:
 	if player == null:
+		return
+	if _canceling:
+		player.clear_skill_preview()
 		return
 	var offset: Vector2 = _knob_pos - _center
 	var direction := Vector2.ZERO
@@ -118,12 +146,17 @@ func _move_knob(local_pos: Vector2) -> void:
 func _release() -> void:
 	var skill := _skill()
 	var offset: Vector2 = _knob_pos - _center
+	var canceling := _canceling
 	_touch_index = -1
+	_canceling = false
 	_knob_pos = _center
 	queue_redraw()
 	if player != null:
 		player.clear_skill_preview()
-	if skill == null:
+	if cancel_area != null:
+		cancel_area.hide_area()
+	# Released over the cancel area (or empty slot): abort without casting.
+	if skill == null or canceling:
 		return
 
 	var direction := Vector2.ZERO
