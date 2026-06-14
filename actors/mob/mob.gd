@@ -16,10 +16,17 @@ extends CharacterBody2D
 ## Seconds between contact-damage ticks while overlapping the player.
 @export var damage_interval: float = 0.7
 
+## Emitted exactly once when the mob dies, just before it frees itself. The
+## wave manager listens to this to count down remaining enemies.
+signal died
+
 ## The node to chase (the player). Injected by the spawning scene.
 var target: Node2D = null
 
 var _health: int = 0
+## Set once when the mob dies; guards take_damage so two hits landing the same
+## frame can't emit `died` twice (which would corrupt the wave's alive counter).
+var _dead: bool = false
 var _player_in_range: Node = null
 
 @onready var _sprite: Sprite2D = $Sprite2D
@@ -45,9 +52,13 @@ func _physics_process(_delta: float) -> void:
 
 
 func take_damage(amount: int) -> void:
+	if _dead:
+		return
 	_health -= amount
 	_flash()
 	if _health <= 0:
+		_dead = true
+		died.emit()
 		queue_free()
 
 

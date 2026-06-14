@@ -39,6 +39,11 @@ signal died
 ## owning scene (e.g. main.gd). When null, only keyboard input applies.
 var joystick: Node = null
 
+## Node that fired bullets are parented to, injected by the owning scene. When
+## null, bullets fall back to the player's own parent. Keeping bullets under a
+## dedicated container lets the run controller free them between rooms.
+var projectile_parent: Node = null
+
 ## Skills assigned to the player's slots (slot 0 is conventionally dash). Set via
 ## set_skills(); may contain nulls for empty slots.
 var skills: Array[Skill] = []
@@ -214,6 +219,14 @@ func take_damage(amount: int) -> void:
 		died.emit()
 
 
+## Restore health up to max_health and notify the UI. Called by HEAL rewards.
+func heal(amount: int) -> void:
+	if not _alive or amount <= 0:
+		return
+	_health = mini(_health + amount, max_health)
+	health_changed.emit(_health, max_health)
+
+
 ## Fire one bullet at the nearest in-range enemy. Returns true if a shot was
 ## fired, false if dead, unarmed, or no enemy is in range (auto-attack stays
 ## idle rather than giving "nothing to shoot" feedback).
@@ -226,8 +239,10 @@ func _fire_at_nearest() -> bool:
 	var bullet := bullet_scene.instantiate()
 	bullet.global_position = global_position
 	bullet.direction = global_position.direction_to(target.global_position)
-	# Add to the world (sibling tree) so the bullet lives independent of the player.
-	get_parent().add_child(bullet)
+	# Add to the injected container (or the world fallback) so the bullet lives
+	# independent of the player and can be cleared on room transitions.
+	var parent: Node = projectile_parent if projectile_parent != null else get_parent()
+	parent.add_child(bullet)
 	return true
 
 

@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://rooms/room_03.gd" id="1_room"]
+[ext_resource type="TileSet" uid="uid://cpc84fxi5kxxf" path="res://assets/tiles/room_tileset.tres" id="2_tileset"]
+
+[node name="Room03" type="Node2D"]
+script = ExtResource("1_room")
+entry_side = "left"
+
+[node name="Ground" type="TileMapLayer" parent="."]
+tile_set = ExtResource("2_tileset")
+texture_filter = 1
+
+[node name="Props" type="Node2D" parent="."]

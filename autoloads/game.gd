@@ -19,6 +19,10 @@ var session_token: String = ""
 ## Placeholder bucket for future save data (flags, inventory, progress).
 var save_data: Dictionary = {}
 
+## Gold collected during the current run. Reset to 0 when a run starts (in
+## main.gd) so it doesn't leak across runs, and read by the victory screen.
+var gold: int = 0
+
 
 ## Populate current state from a session dict (from Auth or a loaded save).
 func apply_session(session: Dictionary) -> void:
