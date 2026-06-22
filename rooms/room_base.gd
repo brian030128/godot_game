@@ -18,8 +18,10 @@ class_name RoomBase
 ##   m  mob spawn cell (painted floor)
 ##   B bookshelf   P plant   T table   C crates   (props; cell painted floor)
 
-@onready var ground: TileMapLayer = $Ground
-@onready var props: Node2D = $Props
+# Optional: a PNG-skinned room (see room_06.gd) has no TileMapLayer/Props — it draws
+# a single map image and builds collision in code — so these resolve to null there.
+@onready var ground: TileMapLayer = get_node_or_null("Ground")
+@onready var props: Node2D = get_node_or_null("Props")
 
 const SOURCE_ID := 0
 const FLOOR := Vector2i(0, 0)

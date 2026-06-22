@@ -1,0 +1,10 @@
+[
+  {"label": "teddy_bear",        "box": [40, 70, 215, 215]},
+  {"label": "candle_cluster_tl", "box": [20, 215, 150, 340]},
+  {"label": "central_spool",     "box": [790, 455, 862, 525]},
+  {"label": "rocking_horse",     "box": [1235, 80, 1445, 235]},
+  {"label": "cage_bl",           "box": [25, 515, 215, 695]},
+  {"label": "machinery_br_top",  "box": [1355, 425, 1525, 565]},
+  {"label": "birdcage_br",       "box": [1420, 600, 1600, 825]},
+  {"label": "candle_cluster_r",  "box": [1500, 250, 1600, 360]}
+]

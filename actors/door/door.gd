@@ -40,7 +40,14 @@ const TILE := 32
 
 ## Position this door at a carved gap. `side` is one of room.gd's SIDE_* values
 ## ("top"/"bottom"/"left"/"right"); `anchor` is the gap centre in world space.
-func configure(side: String, anchor: Vector2) -> void:
+## `opening_inset` pushes BOTH the gate and the transport trigger OUTWARD from the anchor
+## (toward the wall/edge, away from the room) by this many pixels. With a thick wall band
+## (a PNG-skinned room like room_06) this lets the player walk *into* the doorway opening:
+## the gate blocks only the far end (so they can't leave the map before the room clears,
+## and they aren't stuck out at the doorway mouth), and the transport trigger sits deep in
+## the opening so the next room loads only once they're well inside. 0 keeps the gate and
+## trigger at the gap centre — the default for the 1-cell-wall tile rooms.
+func configure(side: String, anchor: Vector2, opening_inset: float = 0.0) -> void:
 	self.side = side
 	global_position = anchor
 	collision_layer = 0
@@ -66,6 +73,7 @@ func configure(side: String, anchor: Vector2) -> void:
 	var detect_rect := RectangleShape2D.new()
 	detect_rect.size = trigger_size
 	detect.shape = detect_rect
+	detect.position = -_inward * opening_inset  # outward, deeper into the opening
 	add_child(detect)
 
 	# Gate that physically blocks the gap while locked.
@@ -73,6 +81,7 @@ func configure(side: String, anchor: Vector2) -> void:
 	var gate := StaticBody2D.new()
 	gate.collision_layer = 1
 	gate.collision_mask = 0
+	gate.position = -_inward * opening_inset  # block the far end, leaving the opening walkable
 	add_child(gate)
 	_gate_shape = CollisionShape2D.new()
 	var gate_rect := RectangleShape2D.new()

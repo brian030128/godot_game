@@ -28,3 +28,6 @@ export/
 # OS / editor cruft.
 .DS_Store
 Thumbs.db
+
+# SAM model checkpoints (large)
+tools/sam/*.pth

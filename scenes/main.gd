@@ -40,7 +40,13 @@ const ROOM_POOL: Array[PackedScene] = [
 	preload("res://rooms/room_02.tscn"),
 	preload("res://rooms/room_03.tscn"),
 	preload("res://rooms/room_04.tscn"),
+	preload("res://rooms/room_06.tscn"),
+	preload("res://rooms/room_s.tscn"),
 ]
+
+## TEMP (verification): a PNG-skinned room forced as the first room so it's always
+## visible on launch. Remove this and the pin in _pick_room once verified.
+const PINNED_FIRST_ROOM := preload("res://rooms/room_s.tscn")
 
 enum State { BUILDING, FIGHTING, CLEARED, TRANSITIONING }
 
@@ -128,11 +134,15 @@ func _start_room(index: int, required_entry: String) -> void:
 	# Doors at the room's authored exits (suppressed on the final room, whose
 	# clear ends the run). All exits share one wall (data.exit_side).
 	_has_exits = index < TOTAL_ROOMS - 1 and not data.exit_anchors.is_empty()
+	# Some rooms (PNG-skinned, thick wall band) push the gate + transport trigger out into
+	# the doorway so the player can walk into the opening, and only transitions once deep
+	# inside it, instead of warping at the doorway mouth.
+	var exit_opening_inset: float = data.get("exit_opening_inset", 0.0)
 	if _has_exits:
 		for anchor in data.exit_anchors:
 			var door: Door = DOOR_SCRIPT.new()
 			doors.add_child(door)
-			door.configure(data.exit_side, anchor)
+			door.configure(data.exit_side, anchor, exit_opening_inset)
 			door.entered.connect(_on_door_entered)
 
 	# A closed door marking the entry the player came through (stays shut so they
@@ -157,6 +167,10 @@ func _start_room(index: int, required_entry: String) -> void:
 ## Pick a random pooled room whose entry_side matches `required_entry`. With ""
 ## (room 0) any room qualifies. Falls back to the whole pool if none match.
 func _pick_room(required_entry: String) -> PackedScene:
+	# TEMP (verification): always open into the map.png room. Remove to restore the
+	# normal random pick.
+	if _room_index == 0:
+		return PINNED_FIRST_ROOM
 	var candidates: Array[PackedScene] = []
 	for scene in ROOM_POOL:
 		if required_entry == "" or _entry_side_of(scene) == required_entry:
